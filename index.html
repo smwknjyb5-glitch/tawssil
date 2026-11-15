@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
@@ -70,6 +70,10 @@ input,select{width:100%;padding:10px;border:2px solid #cdd6de;border-radius:8px;
  <div id="dlogin" class="card"><h2>دخول السائق</h2>
   <input id="em" type="text" dir="ltr" autocomplete="username" autocapitalize="none" placeholder="اسم المستخدم أو البريد"><input id="pw" type="password" dir="ltr" autocomplete="current-password" placeholder="كلمة السر">
   <button class="go" id="dlg">دخول</button><p class="msg" id="dmsg"></p></div>
+ <div id="jcard" class="card"><h2>هل تريد الانضمام كسائق؟</h2>
+  <input id="jn" maxlength="60" placeholder="الاسم الكامل"><input id="jp" type="tel" maxlength="20" placeholder="رقم الهاتف">
+  <input id="jc" maxlength="40" placeholder="المدينة أو الحي"><input id="jv" maxlength="60" placeholder="نوع السيارة وسنة صنعها">
+  <button class="go" id="jb">أرسل طلب الانضمام</button><p class="msg" id="jm">سنتصل بك للتحقق من وثائقك قبل تفعيل حسابك.</p></div>
  <div id="dwrap" hidden>
   <div class="sum"><span id="dn"></span><span>منجزة <b id="dc">0</b></span><span>أرباح <b id="dg">0</b></span></div>
   <div id="dlist"></div>
@@ -165,10 +169,10 @@ $('dlg').onclick=async()=>{dm('جارٍ الدخول…');try{const e=$('em').va
 $('dout').onclick=()=>signOut(dauth);
 onAuthStateChanged(dauth,async u=>{
  if(unD){unD();unD=null}D={};stopGps();
- if(!u){duid=null;$('dlogin').hidden=false;$('dwrap').hidden=true;return}
+ if(!u){duid=null;$('dlogin').hidden=false;$('jcard').hidden=false;$('dwrap').hidden=true;return}
  try{const s=await getDoc(doc(ddb,'drivers',u.uid));
   if(!s.exists()){dm('هذا الحساب غير مسجل كسائق');await signOut(dauth);return}
-  duid=u.uid;dname=s.data().name||u.email;$('dn').textContent=dname;$('dlogin').hidden=true;$('dwrap').hidden=false;dm('');first=true;
+  duid=u.uid;dname=s.data().name||u.email;$('dn').textContent=dname;$('dlogin').hidden=true;$('jcard').hidden=true;$('dwrap').hidden=false;dm('');first=true;
   unD=onSnapshot(query(collection(ddb,'orders')),snap=>{
    snap.docChanges().forEach(c=>{if(!first&&c.type==='added'&&c.doc.data().s===0&&navigator.vibrate)navigator.vibrate([200,100,200])});first=false;
    D={};snap.docs.forEach(d=>D[d.id]={id:d.id,...d.data()});renderD();gps()})
@@ -186,6 +190,16 @@ function gps(){const mine=()=>Object.values(D).filter(o=>o.drv===duid&&o.s>0&&o.
   const dl={lat:p.coords.latitude,lng:p.coords.longitude};mine().forEach(o=>updateDoc(doc(ddb,'orders',o.id),{dl}).catch(()=>{}))},()=>{},{enableHighAccuracy:true});
  else if(!mine().length)stopGps()}
 function stopGps(){if(wid!==null){navigator.geolocation.clearWatch(wid);wid=null}}
+
+// ---- طلب الانضمام كسائق
+$('jb').onclick=async()=>{
+ const n=$('jn').value.trim(),p=$('jp').value.trim(),c=$('jc').value.trim(),v=$('jv').value.trim(),m=$('jm');
+ if(n.length<3||p.replace(/\D/g,'').length<8||!c||!v){m.textContent='أكمل كل الخانات برقم هاتف صحيح';return}
+ if(!cuid){m.textContent='لم يكتمل الاتصال بعد، حاول بعد لحظة';return}
+ $('jb').disabled=true;
+ try{await addDoc(collection(cdb,'driverRequests'),{uid:cuid,name:n,phone:p,city:c,car:v,t:Date.now()});
+  m.textContent='تم إرسال طلبك. سنتصل بك قريبًا.';['jn','jp','jc','jv'].forEach(i=>$(i).value='')}
+ catch(e){m.textContent='تعذّر الإرسال. حاول لاحقًا.';$('jb').disabled=false}};
 
 // ---- التبويبات
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
