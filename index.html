@@ -1,229 +1,196 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>توصيل — نقل الأشخاص والسلع</title>
-  <meta property="og:image" content="https://smwknjyb5-glitch.github.io/tawssil/tawssil.png">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="صورة تطبيق  التوصيل">
+<title>توصيل</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
-:root{--ink:#10202f;--road:#1c3248;--sig:#f5b800;--sig2:#ffd75e;--bg:#e9eef2;--card:#fff;--ok:#1f9d63;--bad:#d64545;--mut:#5d6d7c}
+:root{--ink:#10202f;--road:#1c3248;--sig:#f5b800;--sig2:#ffd75e;--bg:#e9eef2;--mut:#5d6d7c}
 *{box-sizing:border-box}
 body{margin:0;font-family:Tajawal,Tahoma,sans-serif;background:var(--bg);color:var(--ink)}
 header{background:var(--ink);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px;border-bottom:4px solid var(--sig)}
 header h1{margin:0;font-size:1.25rem;font-weight:800}
-header small{color:#9fb2c4}
-#map{height:42vh;min-height:260px;width:100%}
+#map{height:40vh;min-height:250px}
 .tabs{display:flex;background:var(--road)}
 .tabs button{flex:1;padding:12px;border:0;background:none;color:#b9c8d6;font:700 1rem Tajawal,sans-serif;cursor:pointer;border-bottom:3px solid transparent}
 .tabs button.on{color:var(--sig2);border-bottom-color:var(--sig)}
 main{padding:14px;max-width:640px;margin:auto}
-.card{background:var(--card);border-radius:10px;padding:14px;margin-bottom:12px;box-shadow:0 1px 0 #cdd6de}
+.card{background:#fff;border-radius:10px;padding:14px;margin-bottom:12px}
 h2{font-size:1.05rem;margin:0 0 10px}
 .seg{display:flex;gap:8px;margin-bottom:10px}
 .seg label{flex:1;text-align:center;padding:10px;border:2px solid #cdd6de;border-radius:8px;font-weight:700;cursor:pointer}
 .seg input{display:none}
-.seg input:checked+span{color:var(--ink)}
 .seg label:has(input:checked){border-color:var(--sig);background:#fff6d6}
 .pts{display:flex;gap:8px;margin-bottom:10px}
 .pts button{flex:1;padding:10px;border-radius:8px;border:2px solid #cdd6de;background:#fff;font:700 .95rem Tajawal,sans-serif;cursor:pointer}
 .pts button.on{border-color:var(--ink);background:var(--ink);color:#fff}
-input[type=text],select{width:100%;padding:10px;border:2px solid #cdd6de;border-radius:8px;font:1rem Tajawal,sans-serif;margin-bottom:10px;background:#fff}
+input,select{width:100%;padding:10px;border:2px solid #cdd6de;border-radius:8px;font:1rem Tajawal,sans-serif;margin-bottom:10px;background:#fff}
+.srch{display:flex;gap:8px}.srch input{flex:1}
+.srch button{padding:0 14px;margin-bottom:10px;border:0;border-radius:8px;background:var(--ink);color:#fff;font:700 .95rem Tajawal,sans-serif}
+.rs{display:block;width:100%;text-align:right;padding:9px;margin-bottom:6px;border:2px solid #cdd6de;border-radius:8px;background:#fff;font:.9rem Tajawal,sans-serif}
+.gps{width:100%;padding:9px;margin-bottom:10px;border:2px dashed #9aa8b5;border-radius:8px;background:none;font:700 .9rem Tajawal,sans-serif}
 .sum{display:flex;justify-content:space-between;background:var(--ink);color:#fff;border-radius:8px;padding:12px;margin-bottom:10px}
-.sum b{color:var(--sig2);font-size:1.2rem}
-.go{width:100%;padding:13px;border:0;border-radius:8px;background:var(--sig);color:var(--ink);font:800 1.05rem Tajawal,sans-serif;cursor:pointer}
-.go:disabled{opacity:.4;cursor:not-allowed}
-.go.sec{background:var(--ink);color:#fff}
+.sum b{color:var(--sig2);font-size:1.15rem}
+.go{width:100%;padding:12px;border:0;border-radius:8px;background:var(--sig);color:var(--ink);font:800 1rem Tajawal,sans-serif;cursor:pointer}
+.go:disabled{opacity:.4}.go.sec{background:var(--ink);color:#fff}
 .o{border-right:5px solid var(--sig);padding:10px 12px;margin-bottom:10px;background:#fff;border-radius:8px}
-.o.s1{border-color:#2a7fd6}.o.s2{border-color:var(--ok)}.o.s3{border-color:#9aa8b5;opacity:.8}
-.o .r{display:flex;justify-content:space-between;gap:8px;margin-bottom:6px}
+.o.s1{border-color:#2a7fd6}.o.s2{border-color:#1f9d63}.o.s3{border-color:#9aa8b5;opacity:.8}
+.r{display:flex;justify-content:space-between;gap:8px;margin-bottom:4px}
 .st{font-size:.85rem;font-weight:700;color:var(--mut)}
-.empty{text-align:center;color:var(--mut);padding:18px}
-.car{font-size:26px;line-height:26px;filter:drop-shadow(0 2px 2px rgba(0,0,0,.4))}
+.row{display:flex;gap:8px;margin-top:8px}.row>*{flex:1;padding:8px!important;text-align:center;text-decoration:none}
+.empty,.msg{text-align:center;color:var(--mut);padding:10px;font-size:.9rem}
+.car{font-size:26px;line-height:26px}
 .pin{width:26px;height:26px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.5)}
-.srch{display:flex;gap:8px;margin-bottom:8px}
-.srch input{margin:0;flex:1}
-.srch button{padding:0 14px;border:0;border-radius:8px;background:var(--ink);color:#fff;font:700 .95rem Tajawal,sans-serif;cursor:pointer}
-.rs{display:block;width:100%;text-align:right;padding:9px 10px;margin-bottom:6px;border:2px solid #cdd6de;border-radius:8px;background:#fff;font:.9rem Tajawal,sans-serif;cursor:pointer}
-.rs:hover{border-color:var(--sig)}
-.gps{width:100%;padding:9px;margin-bottom:10px;border:2px dashed #9aa8b5;border-radius:8px;background:none;font:700 .9rem Tajawal,sans-serif;cursor:pointer}
-.msg{font-size:.9rem;color:var(--mut);margin:0 0 10px}
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
 <body>
-<header><h1>🚖 توصيل</h1><small>نموذج أولي: نقل الأشخاص وتوصيل السلع</small></header>
+<header><h1>🚖 توصيل</h1></header>
 <div id="map"></div>
-<div class="tabs">
-  <button class="on" data-t="c">الزبون</button>
-  <button data-t="d">السائق</button>
-  <button data-t="l">السجل</button>
-</div>
+<div class="tabs"><button class="on" data-t="c">الزبون</button><button data-t="d">السائق</button><button data-t="l">طلباتي</button></div>
 <main>
 <section id="tc">
-  <div class="card">
-    <h2>ما الذي تحتاجه؟</h2>
-    <div class="seg">
-      <label><input type="radio" name="kind" value="p" checked><span>🧍 نقل شخص</span></label>
-      <label><input type="radio" name="kind" value="g"><span>📦 توصيل سلعة</span></label>
-    </div>
-    <div id="goodsBox" hidden>
-      <input type="text" id="desc" placeholder="وصف السلعة (مثال: كيس خبز، طرد صغير)">
-      <select id="wt">
-        <option value="0">خفيفة (أقل من 5 كغ)</option>
-        <option value="100">متوسطة (5 إلى 20 كغ)</option>
-        <option value="250">ثقيلة (أكثر من 20 كغ)</option>
-      </select>
-    </div>
-    <p class="msg">اختر «الانطلاق» أو «الوصول»، ثم اكتب العنوان أو انقر على الخريطة.</p>
-    <div class="pts">
-      <button id="bA" class="on">📍 الانطلاق</button>
-      <button id="bB">🏁 الوصول</button>
-    </div>
-    <div class="srch"><input type="text" id="q" placeholder="اكتب الحي أو الشارع مع المدينة"><button id="sbtn">بحث</button></div>
-    <div id="res"></div>
-    <button class="gps" id="gps">📌 استعمل موقعي الحالي</button>
-    <div class="sum"><span>المسافة <b id="km">—</b></span><span>السعر <b id="pr">—</b></span></div>
-    <button class="go" id="order" disabled>اطلب الآن</button>
-  </div>
-  <div id="mine"></div>
+ <div class="card">
+  <h2>ما الذي تحتاجه؟</h2>
+  <div class="seg"><label><input type="radio" name="kind" value="p" checked>🧍 نقل شخص</label><label><input type="radio" name="kind" value="g">📦 توصيل سلعة</label></div>
+  <div id="gb" hidden><input id="desc" placeholder="وصف السلعة"><select id="wt"><option value="0">خفيفة (أقل من 5 كغ)</option><option value="100">متوسطة (5 إلى 20 كغ)</option><option value="250">ثقيلة (أكثر من 20 كغ)</option></select></div>
+  <input id="phone" type="tel" placeholder="رقم هاتفك ليتصل بك السائق">
+  <div class="pts"><button id="bA" class="on">📍 الانطلاق</button><button id="bB">🏁 الوصول</button></div>
+  <div class="srch"><input id="q" placeholder="اكتب الحي أو الشارع مع المدينة"><button id="sb">بحث</button></div>
+  <div id="res"></div>
+  <button class="gps" id="gps">📌 استعمل موقعي الحالي</button>
+  <div class="sum"><span>المسافة <b id="km">—</b></span><span>السعر <b id="pr">—</b></span></div>
+  <button class="go" id="order" disabled>اطلب الآن (الدفع نقدًا عند التسليم)</button>
+  <p class="msg" id="cmsg"></p>
+ </div>
+ <div id="mine"></div>
 </section>
 <section id="td" hidden>
-  <h2>الطلبات الواردة</h2>
+ <div id="dlogin" class="card"><h2>دخول السائق</h2>
+  <input id="em" type="email" dir="ltr" placeholder="البريد الإلكتروني"><input id="pw" type="password" dir="ltr" placeholder="كلمة السر">
+  <button class="go" id="dlg">دخول</button><p class="msg" id="dmsg"></p></div>
+ <div id="dwrap" hidden>
+  <div class="sum"><span id="dn"></span><span>منجزة <b id="dc">0</b></span><span>أرباح <b id="dg">0</b></span></div>
   <div id="dlist"></div>
+  <button class="go sec" id="dout">خروج</button>
+ </div>
 </section>
-<section id="tl" hidden>
-  <div class="card"><h2>الملخص</h2><div class="sum"><span>الطلبات <b id="nAll">0</b></span><span>المنجزة <b id="nDone">0</b></span><span>الأرباح <b id="gain">0</b></span></div>
-  <button class="go sec" id="clear">مسح كل الطلبات</button></div>
-  <div id="llist"></div>
-</section>
+<section id="tl" hidden><div id="llist"></div></section>
 </main>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script>
-const KEY='tawsil_orders_v1', CUR='دج';
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {getAuth,signInAnonymously,signInWithEmailAndPassword,signOut,onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {getFirestore,collection,addDoc,query,where,onSnapshot,doc,getDoc,updateDoc} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+const cfg={apiKey:"AIzaSyACnwmNaIFFl2-mkfVR_8tpuYRzoUAenb4",authDomain:"tawssildz-bb7d8.firebaseapp.com",projectId:"tawssildz-bb7d8",storageBucket:"tawssildz-bb7d8.firebasestorage.app",messagingSenderId:"590057204140",appId:"1:590057204140:web:4f2fb64072bad9ec6fb209"};
+// تطبيقان منفصلان: واحد للزبون وآخر للسائق، حتى لا يتداخل الدخولان
+const capp=initializeApp(cfg,'cust'),dapp=initializeApp(cfg,'drv');
+const cauth=getAuth(capp),dauth=getAuth(dapp),cdb=getFirestore(capp),ddb=getFirestore(dapp);
+const $=id=>document.getElementById(id),CUR='دج';
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const PRICE={p:{base:100,km:40},g:{base:150,km:50}};
-const ST=['جديد في انتظار سائق','السائق في الطريق إلى نقطة الانطلاق','تم الاستلام، في الطريق إلى الوجهة','تم التسليم'];
-let orders=[];
-try{orders=JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){orders=[]}
-const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(orders))}catch(e){}};
-const $=id=>document.getElementById(id);
+const ST=['جديد في انتظار سائق','السائق في الطريق إليك','تم الاستلام، في الطريق إلى الوجهة','تم التسليم'];
 
 // ---- الخريطة
 const map=L.map('map').setView([36.75,3.06],12);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
 if(navigator.geolocation)navigator.geolocation.getCurrentPosition(p=>map.setView([p.coords.latitude,p.coords.longitude],14),()=>{},{timeout:4000});
 const pin=c=>L.divIcon({className:'',html:`<div class="pin" style="background:${c}"></div>`,iconSize:[26,26],iconAnchor:[13,26]});
-const carIcon=L.divIcon({className:'',html:'<div class="car">🚗</div>',iconSize:[26,26],iconAnchor:[13,13]});
-let mode='A',A=null,B=null,mA=null,mB=null,line=null,car=null,anim=null,shown=null;
-
-function dist(a,b){const R=6371,r=x=>x*Math.PI/180,dl=r(b.lat-a.lat),dn=r(b.lng-a.lng);
-  const h=Math.sin(dl/2)**2+Math.cos(r(a.lat))*Math.cos(r(b.lat))*Math.sin(dn/2)**2;
-  return 2*R*Math.asin(Math.sqrt(h))*1.3} // معامل 1.3 لتقريب طول الطريق
-function price(kind,km,extra){const p=PRICE[kind];return Math.round((p.base+p.km*km+(kind==='g'?extra:0))/10)*10}
+let mode='A',A=null,B=null,mA,mB,line,car,shown=null;
+function draw(a,b){[mA,mB,line].forEach(x=>x&&map.removeLayer(x));mA=mB=line=null;
+ if(a)mA=L.marker(a,{icon:pin('#1f9d63')}).addTo(map);
+ if(b)mB=L.marker(b,{icon:pin('#d64545')}).addTo(map);
+ if(a&&b){line=L.polyline([a,b],{color:'#10202f',weight:4,dashArray:'8 8'}).addTo(map);map.fitBounds(line.getBounds(),{padding:[40,40]})}}
+function setCar(ll){if(!ll)return;if(!car)car=L.marker(ll,{icon:L.divIcon({className:'',html:'<div class="car">🚗</div>',iconSize:[26,26],iconAnchor:[13,13]}),zIndexOffset:900}).addTo(map);else car.setLatLng(ll)}
+function clearShown(){shown=null;if(car){map.removeLayer(car);car=null}draw(null,null)}
+const dist=(a,b)=>{const R=6371,r=x=>x*Math.PI/180,dl=r(b.lat-a.lat),dn=r(b.lng-a.lng),h=Math.sin(dl/2)**2+Math.cos(r(a.lat))*Math.cos(r(b.lat))*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(h))*1.3};
 const kind=()=>document.querySelector('input[name=kind]:checked').value;
-
-function draw(a,b){
-  [mA,mB,line].forEach(x=>x&&map.removeLayer(x));mA=mB=line=null;
-  if(a)mA=L.marker(a,{icon:pin('#1f9d63')}).addTo(map);
-  if(b)mB=L.marker(b,{icon:pin('#d64545')}).addTo(map);
-  if(a&&b){line=L.polyline([a,b],{color:'#10202f',weight:4,dashArray:'8 8'}).addTo(map);map.fitBounds(line.getBounds(),{padding:[40,40]})}
-}
-function calc(){
-  if(A&&B){const km=dist(A,B);$('km').textContent=km.toFixed(1)+' كم';
-    $('pr').textContent=price(kind(),km,+$('wt').value)+' '+CUR;$('order').disabled=false}
-  else{$('km').textContent='—';$('pr').textContent='—';$('order').disabled=true}
-}
-function pick(ll){
-  if(shown!==null){clearShown()}
-  if(mode==='A'){A=ll;setMode('B')}else{B=ll}
-  draw(A,B);calc();
-  if(!(A&&B))map.setView(ll,16);
-}
+const price=(k,km,x)=>Math.round((PRICE[k].base+PRICE[k].km*km+(k==='g'?x:0))/10)*10;
+function calc(){if(A&&B){const km=dist(A,B);$('km').textContent=km.toFixed(1)+' كم';$('pr').textContent=price(kind(),km,+$('wt').value)+' '+CUR;$('order').disabled=false}else{$('km').textContent=$('pr').textContent='—';$('order').disabled=true}}
+const setMode=m=>{mode=m;$('bA').classList.toggle('on',m==='A');$('bB').classList.toggle('on',m==='B')};
+function pick(ll){if(shown!==null)clearShown();if(mode==='A'){A=ll;setMode('B')}else B=ll;draw(A,B);calc();if(!(A&&B))map.setView(ll,16)}
 map.on('click',e=>pick(e.latlng));
-async function search(){
-  const q=$('q').value.trim(),box=$('res');if(!q)return;
-  box.innerHTML='<div class="empty">جارٍ البحث…</div>';
-  try{
-    const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=5&accept-language=ar&q='+encodeURIComponent(q));
-    const d=await r.json();box.innerHTML='';
-    if(!d.length){box.innerHTML='<div class="empty">لا توجد نتائج. جرّب اسمًا أوضح مع ذكر المدينة.</div>';return}
-    d.forEach(x=>{const b=document.createElement('button');b.className='rs';b.textContent=x.display_name;
-      b.onclick=()=>{pick(L.latLng(+x.lat,+x.lon));box.innerHTML='';$('q').value=''};box.appendChild(b)});
-  }catch(e){box.innerHTML='<div class="empty">تعذّر البحث. تحقق من الاتصال بالإنترنت.</div>'}
-}
-$('sbtn').onclick=search;
-$('q').addEventListener('keydown',e=>{if(e.key==='Enter')search()});
-$('gps').onclick=()=>{
-  if(!navigator.geolocation){alert('جهازك لا يدعم تحديد الموقع');return}
-  navigator.geolocation.getCurrentPosition(p=>pick(L.latLng(p.coords.latitude,p.coords.longitude)),()=>alert('تعذّر تحديد موقعك. فعّل خدمة الموقع وامنح المتصفح الإذن.'),{timeout:8000});
-};
-function setMode(m){mode=m;$('bA').classList.toggle('on',m==='A');$('bB').classList.toggle('on',m==='B')}
 $('bA').onclick=()=>setMode('A');$('bB').onclick=()=>setMode('B');
-document.querySelectorAll('input[name=kind]').forEach(r=>r.onchange=()=>{$('goodsBox').hidden=kind()!=='g';calc()});
+document.querySelectorAll('input[name=kind]').forEach(r=>r.onchange=()=>{$('gb').hidden=kind()!=='g';calc()});
 $('wt').onchange=calc;
+async function search(){const q=$('q').value.trim(),box=$('res');if(!q)return;box.innerHTML='<div class="empty">جارٍ البحث…</div>';
+ try{const d=await(await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=5&accept-language=ar&q='+encodeURIComponent(q))).json();box.innerHTML='';
+  if(!d.length){box.innerHTML='<div class="empty">لا توجد نتائج. أضف اسم المدينة.</div>';return}
+  d.forEach(x=>{const b=document.createElement('button');b.className='rs';b.textContent=x.display_name;b.onclick=()=>{pick(L.latLng(+x.lat,+x.lon));box.innerHTML='';$('q').value=''};box.appendChild(b)})
+ }catch(e){box.innerHTML='<div class="empty">تعذّر البحث. تحقق من الاتصال.</div>'}}
+$('sb').onclick=search;$('q').addEventListener('keydown',e=>{if(e.key==='Enter')search()});
+$('gps').onclick=()=>navigator.geolocation?navigator.geolocation.getCurrentPosition(p=>pick(L.latLng(p.coords.latitude,p.coords.longitude)),()=>alert('فعّل خدمة الموقع وامنح المتصفح الإذن'),{timeout:8000}):alert('جهازك لا يدعم تحديد الموقع');
+try{$('phone').value=localStorage.getItem('tw_phone')||''}catch(e){}
 
-// ---- السيارة
-function moveCar(from,to,ms,done){
-  if(anim)cancelAnimationFrame(anim);
-  if(!car)car=L.marker(from,{icon:carIcon,zIndexOffset:900}).addTo(map);
-  const t0=performance.now();
-  (function step(t){const k=Math.min(1,(t-t0)/ms);
-    car.setLatLng([from.lat+(to.lat-from.lat)*k,from.lng+(to.lng-from.lng)*k]);
-    if(k<1)anim=requestAnimationFrame(step);else if(done)done()})(t0);
-}
-function clearShown(){shown=null;if(anim)cancelAnimationFrame(anim);if(car){map.removeLayer(car);car=null}}
-function show(o){shown=o.id;draw(o.a,o.b)}
+// ---- بطاقات الطلبات
+const label=o=>o.kind==='p'?'🧍 نقل شخص':'📦 '+esc(o.desc||'توصيل سلعة');
+function card(o,role){
+ const nx=role==='d'?(o.s===0?'قبول الطلب':o.s===1?'تم الاستلام':'تم التسليم'):'';
+ return `<div class="o s${o.s}"><div class="r"><b>${label(o)}</b><b>${o.price} ${CUR}</b></div>
+ <div class="st">${o.km} كم • ${ST[o.s]}${o.dn?' • السائق: '+esc(o.dn):''}</div>
+ <div class="row"><button class="go sec" data-v="${o.id}">على الخريطة</button>
+ ${role==='d'&&o.phone?`<a class="go sec" href="tel:${esc(o.phone)}">📞 اتصال</a>`:''}
+ ${nx&&o.s<3?`<button class="go" data-a="${o.id}">${nx}</button>`:''}</div></div>`}
+document.addEventListener('click',e=>{const v=e.target.dataset?.v,a=e.target.dataset?.a;
+ if(v){const o=C.find(x=>x.id===v)||D[v];if(o){clearShown();shown=o.id;draw(o.a,o.b);setCar(o.dl)}}
+ if(a)advance(a)});
 
-// ---- الطلبات
-const label=o=>(o.kind==='p'?'🧍 نقل شخص':'📦 '+(o.desc||'توصيل سلعة'));
-function card(o,withBtn){
-  const nxt=['قبول الطلب','تم الاستلام','تم التسليم'][o.s];
-  return `<div class="o s${o.s}"><div class="r"><b>${label(o)}</b><b>${o.price} ${CUR}</b></div>
-  <div class="st">${o.km} كم • ${ST[o.s]}</div>
-  <div style="display:flex;gap:8px;margin-top:8px">
-  <button class="go sec" style="padding:8px" onclick="view(${o.id})">عرض على الخريطة</button>
-  ${withBtn&&o.s<3?`<button class="go" style="padding:8px" onclick="advance(${o.id})">${nxt}</button>`:''}</div></div>`;
-}
-function render(){
-  const last=orders.slice().reverse();
-  $('mine').innerHTML=last.length?'<h2>طلباتي</h2>'+last.slice(0,3).map(o=>card(o,false)).join(''):'';
-  const act=last.filter(o=>o.s<3);
-  $('dlist').innerHTML=act.length?act.map(o=>card(o,true)).join(''):'<div class="empty">لا توجد طلبات الآن. أنشئ طلبًا من واجهة الزبون.</div>';
-  $('llist').innerHTML=last.length?last.map(o=>card(o,false)).join(''):'<div class="empty">السجل فارغ.</div>';
-  const done=orders.filter(o=>o.s===3);
-  $('nAll').textContent=orders.length;$('nDone').textContent=done.length;
-  $('gain').textContent=done.reduce((s,o)=>s+o.price,0)+' '+CUR;
-}
-$('order').onclick=()=>{
-  const km=dist(A,B);
-  const o={id:Date.now(),kind:kind(),desc:$('desc').value.trim(),km:+km.toFixed(1),
-    price:price(kind(),km,+$('wt').value),s:0,a:{lat:A.lat,lng:A.lng},b:{lat:B.lat,lng:B.lng}};
-  orders.push(o);save();render();show(o);
-  A=B=null;setMode('A');calc();$('desc').value='';
-};
-window.view=id=>{const o=orders.find(x=>x.id===id);if(!o)return;clearShown();show(o);
-  if(o.s===1)car=L.marker(o.a,{icon:carIcon}).addTo(map);
-  if(o.s===2)car=L.marker(o.b,{icon:carIcon}).addTo(map);};
-window.advance=id=>{
-  const o=orders.find(x=>x.id===id);if(!o||o.s>=3)return;
-  clearShown();show(o);o.s++;
-  if(o.s===1){const start={lat:o.a.lat+.012,lng:o.a.lng-.012};moveCar(start,o.a,4000)}
-  if(o.s===2)moveCar(o.a,o.b,7000);
-  if(o.s===3){car=L.marker(o.b,{icon:carIcon}).addTo(map)}
-  save();render();
-};
-$('clear').onclick=()=>{if(confirm('هل تريد مسح كل الطلبات؟')){orders=[];save();clearShown();draw(null,null);render()}};
+// ---- الزبون
+let C=[],cuid=null,cmsg=t=>$('cmsg').textContent=t;
+signInAnonymously(cauth).catch(()=>cmsg('تعذّر الاتصال بالخدمة. فعّل Anonymous في Authentication.'));
+onAuthStateChanged(cauth,u=>{if(!u)return;cuid=u.uid;
+ onSnapshot(query(collection(cdb,'orders'),where('uid','==',u.uid)),snap=>{
+  C=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.t-a.t);renderC();
+  const act=C.find(o=>o.s<3);
+  if(act&&!A&&!B){if(shown!==act.id){shown=act.id;draw(act.a,act.b)}act.dl?setCar(act.dl):0}
+  else if(!act&&shown&&C.some(o=>o.id===shown)){clearShown()}
+ },()=>cmsg('تعذّر قراءة الطلبات. تحقق من قواعد Firestore.'))});
+function renderC(){
+ $('mine').innerHTML=C.filter(o=>o.s<3).length?'<h2>طلباتي الجارية</h2>'+C.filter(o=>o.s<3).map(o=>card(o,'c')).join(''):'';
+ $('llist').innerHTML=C.length?C.map(o=>card(o,'c')).join(''):'<div class="empty">لا طلبات بعد.</div>'}
+$('order').onclick=async()=>{
+ const ph=$('phone').value.trim();if(ph.replace(/\D/g,'').length<8){cmsg('اكتب رقم هاتف صحيحًا');return}
+ if(!cuid){cmsg('لم يكتمل الاتصال بعد، انتظر لحظة');return}
+ const km=dist(A,B),o={uid:cuid,kind:kind(),desc:$('desc').value.trim(),phone:ph,km:+km.toFixed(1),price:price(kind(),km,+$('wt').value),s:0,t:Date.now(),a:{lat:A.lat,lng:A.lng},b:{lat:B.lat,lng:B.lng}};
+ $('order').disabled=true;
+ try{localStorage.setItem('tw_phone',ph)}catch(e){}
+ try{await addDoc(collection(cdb,'orders'),o);cmsg('تم إرسال طلبك، بانتظار سائق.');A=B=null;setMode('A');clearShown();calc();$('desc').value=''}
+ catch(e){cmsg('تعذّر إرسال الطلب. تحقق من القواعد والاتصال.');calc()}};
+
+// ---- السائق
+let D={},duid=null,dname='',unD=null,wid=null,last=0,first=true;
+const dm=t=>$('dmsg').textContent=t;
+$('dlg').onclick=async()=>{dm('جارٍ الدخول…');try{await signInWithEmailAndPassword(dauth,$('em').value.trim(),$('pw').value)}catch(e){dm('بيانات الدخول غير صحيحة')}};
+$('dout').onclick=()=>signOut(dauth);
+onAuthStateChanged(dauth,async u=>{
+ if(unD){unD();unD=null}D={};stopGps();
+ if(!u){duid=null;$('dlogin').hidden=false;$('dwrap').hidden=true;return}
+ try{const s=await getDoc(doc(ddb,'drivers',u.uid));
+  if(!s.exists()){dm('هذا الحساب غير مسجل كسائق');await signOut(dauth);return}
+  duid=u.uid;dname=s.data().name||u.email;$('dn').textContent=dname;$('dlogin').hidden=true;$('dwrap').hidden=false;dm('');first=true;
+  unD=onSnapshot(query(collection(ddb,'orders')),snap=>{
+   snap.docChanges().forEach(c=>{if(!first&&c.type==='added'&&c.doc.data().s===0&&navigator.vibrate)navigator.vibrate([200,100,200])});first=false;
+   D={};snap.docs.forEach(d=>D[d.id]={id:d.id,...d.data()});renderD();gps()})
+ }catch(e){dm('تعذّر التحقق من حساب السائق');await signOut(dauth)}});
+function renderD(){
+ const all=Object.values(D).sort((a,b)=>b.t-a.t),mine=all.filter(o=>o.drv===duid),done=mine.filter(o=>o.s===3);
+ $('dc').textContent=done.length;$('dg').textContent=done.reduce((s,o)=>s+o.price,0);
+ const list=all.filter(o=>o.s===0||(o.drv===duid&&o.s<3));
+ $('dlist').innerHTML=list.length?list.map(o=>card(o,'d')).join(''):'<div class="empty">لا طلبات الآن.</div>'}
+async function advance(id){const o=D[id];if(!o)return;
+ try{await updateDoc(doc(ddb,'orders',id),o.s===0?{s:1,drv:duid,dn:dname}:{s:o.s+1})}
+ catch(e){alert('تعذّر التحديث. ربما قبله سائق آخر.')}}
+function gps(){const mine=()=>Object.values(D).filter(o=>o.drv===duid&&o.s>0&&o.s<3);
+ if(mine().length&&wid===null&&navigator.geolocation)wid=navigator.geolocation.watchPosition(p=>{const n=Date.now();if(n-last<5000)return;last=n;
+  const dl={lat:p.coords.latitude,lng:p.coords.longitude};mine().forEach(o=>updateDoc(doc(ddb,'orders',o.id),{dl}).catch(()=>{}))},()=>{},{enableHighAccuracy:true});
+ else if(!mine().length)stopGps()}
+function stopGps(){if(wid!==null){navigator.geolocation.clearWatch(wid);wid=null}}
 
 // ---- التبويبات
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
-  document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x===b));
-  ['c','d','l'].forEach(t=>$('t'+t).hidden=t!==b.dataset.t);render();
-});
-render();
+ document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x===b));
+ ['c','d','l'].forEach(t=>$('t'+t).hidden=t!==b.dataset.t)});
 </script>
 </body>
 </html>
