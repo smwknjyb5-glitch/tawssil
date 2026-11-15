@@ -54,8 +54,8 @@ input,select{width:100%;padding:10px;border:2px solid #cdd6de;border-radius:8px;
  <div class="card">
   <h2>ما الذي تحتاجه؟</h2>
   <div class="seg"><label><input type="radio" name="kind" value="p" checked>🧍 نقل شخص</label><label><input type="radio" name="kind" value="g">📦 توصيل سلعة</label></div>
-  <div id="gb" hidden><input id="desc" placeholder="وصف السلعة"><select id="wt"><option value="0">خفيفة (أقل من 5 كغ)</option><option value="100">متوسطة (5 إلى 20 كغ)</option><option value="250">ثقيلة (أكثر من 20 كغ)</option></select></div>
-  <input id="phone" type="tel" placeholder="رقم هاتفك ليتصل بك السائق">
+  <div id="gb" hidden><input id="desc" placeholder="وصف السلعة"><select id="wt"><option value="0">خفيفة (أقل من 5 كغ)</option><option value="50">متوسطة (5 إلى 20 كغ)</option><option value="150">ثقيلة (أكثر من 20 كغ)</option></select></div>
+  <input id="phone" type="tel" autocomplete="tel" placeholder="رقم هاتفك ليتصل بك السائق">
   <div class="pts"><button id="bA" class="on">📍 الانطلاق</button><button id="bB">🏁 الوصول</button></div>
   <div class="srch"><input id="q" placeholder="اكتب الحي أو الشارع مع المدينة"><button id="sb">بحث</button></div>
   <div id="res"></div>
@@ -68,7 +68,7 @@ input,select{width:100%;padding:10px;border:2px solid #cdd6de;border-radius:8px;
 </section>
 <section id="td" hidden>
  <div id="dlogin" class="card"><h2>دخول السائق</h2>
-  <input id="em" type="email" dir="ltr" placeholder="البريد الإلكتروني"><input id="pw" type="password" dir="ltr" placeholder="كلمة السر">
+  <input id="em" type="text" dir="ltr" autocomplete="username" autocapitalize="none" placeholder="اسم المستخدم أو البريد"><input id="pw" type="password" dir="ltr" autocomplete="current-password" placeholder="كلمة السر">
   <button class="go" id="dlg">دخول</button><p class="msg" id="dmsg"></p></div>
  <div id="dwrap" hidden>
   <div class="sum"><span id="dn"></span><span>منجزة <b id="dc">0</b></span><span>أرباح <b id="dg">0</b></span></div>
@@ -89,7 +89,7 @@ const capp=initializeApp(cfg,'cust'),dapp=initializeApp(cfg,'drv');
 const cauth=getAuth(capp),dauth=getAuth(dapp),cdb=getFirestore(capp),ddb=getFirestore(dapp);
 const $=id=>document.getElementById(id),CUR='دج';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const PRICE={p:{base:100,km:40},g:{base:150,km:50}};
+const PRICE={p:{base:70,km:30},g:{base:100,km:35}}; // عدّل الأرقام هنا: السعر الأساسي وسعر الكيلومتر (دج)
 const ST=['جديد في انتظار سائق','السائق في الطريق إليك','تم الاستلام، في الطريق إلى الوجهة','تم التسليم'];
 
 // ---- الخريطة
@@ -161,7 +161,7 @@ $('order').onclick=async()=>{
 // ---- السائق
 let D={},duid=null,dname='',unD=null,wid=null,last=0,first=true;
 const dm=t=>$('dmsg').textContent=t;
-$('dlg').onclick=async()=>{dm('جارٍ الدخول…');try{await signInWithEmailAndPassword(dauth,$('em').value.trim(),$('pw').value)}catch(e){dm('بيانات الدخول غير صحيحة')}};
+$('dlg').onclick=async()=>{dm('جارٍ الدخول…');try{const e=$('em').value.trim();await signInWithEmailAndPassword(dauth,e.includes('@')?e:e+'@tawsil.app',$('pw').value)}catch(e){dm('بيانات الدخول غير صحيحة')}};
 $('dout').onclick=()=>signOut(dauth);
 onAuthStateChanged(dauth,async u=>{
  if(unD){unD();unD=null}D={};stopGps();
