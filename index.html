@@ -60,6 +60,8 @@ input,select{width:100%;padding:10px;border:2px solid #cdd6de;border-radius:8px;
   <div class="srch"><input id="q" placeholder="اكتب الحي أو الشارع مع المدينة"><button id="sb">بحث</button></div>
   <div id="res"></div>
   <button class="gps" id="gps">📌 استعمل موقعي الحالي</button>
+  <input id="adA" maxlength="150" placeholder="عنوان الانطلاق (الحي، الشارع، معلم قريب)">
+  <input id="adB" maxlength="150" placeholder="عنوان الوصول (الحي، الشارع، معلم قريب)">
   <div class="sum"><span>المسافة <b id="km">—</b></span><span>السعر <b id="pr">—</b></span></div>
   <button class="go" id="order" disabled>اطلب الآن (الدفع نقدًا عند التسليم)</button>
   <p class="msg" id="cmsg"></p>
@@ -113,7 +115,10 @@ const kind=()=>document.querySelector('input[name=kind]:checked').value;
 const price=(k,km,x)=>Math.round((PRICE[k].base+PRICE[k].km*km+(k==='g'?x:0))/10)*10;
 function calc(){if(A&&B){const km=dist(A,B);$('km').textContent=km.toFixed(1)+' كم';$('pr').textContent=price(kind(),km,+$('wt').value)+' '+CUR;$('order').disabled=false}else{$('km').textContent=$('pr').textContent='—';$('order').disabled=true}}
 const setMode=m=>{mode=m;$('bA').classList.toggle('on',m==='A');$('bB').classList.toggle('on',m==='B')};
-function pick(ll){if(shown!==null)clearShown();if(mode==='A'){A=ll;setMode('B')}else B=ll;draw(A,B);calc();if(!(A&&B))map.setView(ll,16)}
+const short=n=>n.split(/[,،]\s*/).slice(0,3).join('، ');
+async function fillAddr(id,ll,name){const el=$(id);if(name){el.value=short(name);return}
+ el.value='';try{const d=await(await fetch('https://nominatim.openstreetmap.org/reverse?format=json&accept-language=ar&lat='+ll.lat+'&lon='+ll.lng)).json();if(d.display_name&&!el.value)el.value=short(d.display_name)}catch(e){}}
+function pick(ll,name){if(shown!==null)clearShown();const m=mode;if(m==='A'){A=ll;setMode('B')}else B=ll;draw(A,B);calc();if(!(A&&B))map.setView(ll,16);fillAddr(m==='A'?'adA':'adB',ll,name)}
 map.on('click',e=>pick(e.latlng));
 $('bA').onclick=()=>setMode('A');$('bB').onclick=()=>setMode('B');
 document.querySelectorAll('input[name=kind]').forEach(r=>r.onchange=()=>{$('gb').hidden=kind()!=='g';calc()});
@@ -121,7 +126,7 @@ $('wt').onchange=calc;
 async function search(){const q=$('q').value.trim(),box=$('res');if(!q)return;box.innerHTML='<div class="empty">جارٍ البحث…</div>';
  try{const d=await(await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=5&accept-language=ar&q='+encodeURIComponent(q))).json();box.innerHTML='';
   if(!d.length){box.innerHTML='<div class="empty">لا توجد نتائج. أضف اسم المدينة.</div>';return}
-  d.forEach(x=>{const b=document.createElement('button');b.className='rs';b.textContent=x.display_name;b.onclick=()=>{pick(L.latLng(+x.lat,+x.lon));box.innerHTML='';$('q').value=''};box.appendChild(b)})
+  d.forEach(x=>{const b=document.createElement('button');b.className='rs';b.textContent=x.display_name;b.onclick=()=>{pick(L.latLng(+x.lat,+x.lon),x.display_name);box.innerHTML='';$('q').value=''};box.appendChild(b)})
  }catch(e){box.innerHTML='<div class="empty">تعذّر البحث. تحقق من الاتصال.</div>'}}
 $('sb').onclick=search;$('q').addEventListener('keydown',e=>{if(e.key==='Enter')search()});
 $('gps').onclick=()=>navigator.geolocation?navigator.geolocation.getCurrentPosition(p=>pick(L.latLng(p.coords.latitude,p.coords.longitude)),()=>alert('فعّل خدمة الموقع وامنح المتصفح الإذن'),{timeout:8000}):alert('جهازك لا يدعم تحديد الموقع');
@@ -133,6 +138,7 @@ function card(o,role){
  const nx=role==='d'?(o.s===0?'قبول الطلب':o.s===1?'تم الاستلام':'تم التسليم'):'';
  return `<div class="o s${o.s}"><div class="r"><b>${label(o)}</b><b>${o.price} ${CUR}</b></div>
  <div class="st">${o.km} كم • ${ST[o.s]}${o.dn?' • السائق: '+esc(o.dn):''}</div>
+ ${o.addrA?`<div class="st">📍 ${esc(o.addrA)}<br>🏁 ${esc(o.addrB)}</div>`:''}
  <div class="row"><button class="go sec" data-v="${o.id}">على الخريطة</button>
  ${role==='d'&&o.phone?`<a class="go sec" href="tel:${esc(o.phone)}">📞 اتصال</a>`:''}
  ${nx&&o.s<3?`<button class="go" data-a="${o.id}">${nx}</button>`:''}</div></div>`}
@@ -155,11 +161,12 @@ function renderC(){
  $('llist').innerHTML=C.length?C.map(o=>card(o,'c')).join(''):'<div class="empty">لا طلبات بعد.</div>'}
 $('order').onclick=async()=>{
  const ph=$('phone').value.trim();if(ph.replace(/\D/g,'').length<8){cmsg('اكتب رقم هاتف صحيحًا');return}
+ const aa=$('adA').value.trim(),ab=$('adB').value.trim();if(aa.length<3||ab.length<3){cmsg('اكتب عنوان الانطلاق وعنوان الوصول');return}
  if(!cuid){cmsg('لم يكتمل الاتصال بعد، انتظر لحظة');return}
- const km=dist(A,B),o={uid:cuid,kind:kind(),desc:$('desc').value.trim(),phone:ph,km:+km.toFixed(1),price:price(kind(),km,+$('wt').value),s:0,t:Date.now(),a:{lat:A.lat,lng:A.lng},b:{lat:B.lat,lng:B.lng}};
+ const km=dist(A,B),o={uid:cuid,kind:kind(),desc:$('desc').value.trim(),phone:ph,addrA:aa,addrB:ab,km:+km.toFixed(1),price:price(kind(),km,+$('wt').value),s:0,t:Date.now(),a:{lat:A.lat,lng:A.lng},b:{lat:B.lat,lng:B.lng}};
  $('order').disabled=true;
  try{localStorage.setItem('tw_phone',ph)}catch(e){}
- try{await addDoc(collection(cdb,'orders'),o);cmsg('تم إرسال طلبك، بانتظار سائق.');A=B=null;setMode('A');clearShown();calc();$('desc').value=''}
+ try{await addDoc(collection(cdb,'orders'),o);cmsg('تم إرسال طلبك، بانتظار سائق.');A=B=null;setMode('A');clearShown();calc();$('desc').value='';$('adA').value=$('adB').value=''}
  catch(e){cmsg('تعذّر إرسال الطلب ('+(e.code||e.message)+')');calc()}};
 
 // ---- السائق
