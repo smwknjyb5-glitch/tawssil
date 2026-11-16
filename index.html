@@ -160,7 +160,7 @@ $('order').onclick=async()=>{
  $('order').disabled=true;
  try{localStorage.setItem('tw_phone',ph)}catch(e){}
  try{await addDoc(collection(cdb,'orders'),o);cmsg('تم إرسال طلبك، بانتظار سائق.');A=B=null;setMode('A');clearShown();calc();$('desc').value=''}
- catch(e){cmsg('تعذّر إرسال الطلب. تحقق من القواعد والاتصال.');calc()}};
+ catch(e){cmsg('تعذّر إرسال الطلب ('+(e.code||e.message)+')');calc()}};
 
 // ---- السائق
 let D={},duid=null,dname='',unD=null,wid=null,last=0,first=true;
@@ -175,7 +175,7 @@ onAuthStateChanged(dauth,async u=>{
   duid=u.uid;dname=s.data().name||u.email;$('dn').textContent=dname;$('dlogin').hidden=true;$('jcard').hidden=true;$('dwrap').hidden=false;dm('');first=true;
   unD=onSnapshot(query(collection(ddb,'orders')),snap=>{
    snap.docChanges().forEach(c=>{if(!first&&c.type==='added'&&c.doc.data().s===0&&navigator.vibrate)navigator.vibrate([200,100,200])});first=false;
-   D={};snap.docs.forEach(d=>D[d.id]={id:d.id,...d.data()});renderD();gps()})
+   D={};snap.docs.forEach(d=>D[d.id]={id:d.id,...d.data()});renderD();gps()},err=>{$('dlist').innerHTML='<div class="empty">تعذّر قراءة الطلبات: '+esc(err.code||err.message)+'</div>'})
  }catch(e){dm('تعذّر التحقق من حساب السائق');await signOut(dauth)}});
 function renderD(){
  const all=Object.values(D).sort((a,b)=>b.t-a.t),mine=all.filter(o=>o.drv===duid),done=mine.filter(o=>o.s===3);
