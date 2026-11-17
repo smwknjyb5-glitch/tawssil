@@ -71,7 +71,8 @@ input,select{width:100%;padding:10px;border:2px solid #cdd6de;border-radius:8px;
 <section id="td" hidden>
  <div id="dlogin" class="card"><h2>دخول السائق</h2>
   <input id="em" type="text" dir="ltr" inputmode="tel" autocomplete="username" autocapitalize="none" placeholder="رقم الهاتف"><input id="pw" type="password" dir="ltr" autocomplete="current-password" placeholder="الرمز السري">
-  <button class="go" id="dlg">دخول</button><p class="msg" id="dmsg"></p></div>
+  <button class="go" id="dlg">دخول</button><p class="msg" id="dmsg"></p>
+  <button class="gps" id="admb">دخول المشرف (بالبريد الإلكتروني)</button></div>
  <div id="jcard" class="card"><h2>هل تريد الانضمام كسائق؟ سجّل هنا</h2>
   <input id="jn" maxlength="60" placeholder="الاسم الكامل"><input id="jp" type="tel" maxlength="20" placeholder="رقم الهاتف">
   <input id="jc" maxlength="40" placeholder="المدينة أو الحي"><input id="jv" maxlength="60" placeholder="نوع السيارة وسنة صنعها">
@@ -179,6 +180,7 @@ function view(w){$('dlogin').hidden=$('jcard').hidden=w!=='login';$('dwrap').hid
 $('dlg').onclick=async()=>{dm('جارٍ الدخول…');const e=$('em').value.trim();
  try{await signInWithEmailAndPassword(dauth,e.includes('@')?e:digits(e)+'@tawsil.app',$('pw').value)}catch(x){dm('الرقم أو الرمز غير صحيح')}};
 $('dout').onclick=$('aout').onclick=()=>signOut(dauth);
+$('admb').onclick=()=>{const e=$('em');e.setAttribute('inputmode','email');e.placeholder='البريد الإلكتروني';e.value='';e.focus();$('admb').hidden=true};
 onAuthStateChanged(dauth,async u=>{
  if(joining)return;
  if(unD){unD();unD=null}D={};stopGps();
