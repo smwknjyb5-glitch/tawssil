@@ -81,6 +81,8 @@ input,select{width:100%;padding:10px;border:2px solid #cdd6de;border-radius:8px;
  <div id="awrap" hidden><h2>طلبات الانضمام (المشرف)</h2><div id="alist"></div><button class="go sec" id="aout">خروج</button></div>
  <div id="dwrap" hidden>
   <div class="sum"><span id="dn"></span><span>منجزة <b id="dc">0</b></span><span>أرباح <b id="dg">0</b></span></div>
+  <button class="gps" id="snd">🔔 فعّل تنبيه الطلبات (اضغط مرة واحدة)</button>
+  <button class="go" id="mut" hidden style="margin-bottom:10px">🔕 إيقاف الرنّة الآن</button>
   <div id="dlist"></div>
   <button class="go sec" id="dout">خروج</button>
  </div>
@@ -145,6 +147,7 @@ function card(o,role){
  ${o.addrA?`<div class="st">📍 ${esc(o.addrA)}<br>🏁 ${esc(o.addrB)}</div>`:''}
  <div class="row"><button class="go sec" data-v="${o.id}">على الخريطة</button>
  ${role==='d'&&o.phone?`<a class="go sec" href="tel:${esc(o.phone)}">📞 اتصال</a>`:''}
+ ${role==='d'&&o.s===0?`<button class="go sec" data-h="${o.id}">تجاهل</button>`:''}
  ${nx&&o.s<3?`<button class="go" data-a="${o.id}">${nx}</button>`:''}</div></div>`}
 document.addEventListener('click',e=>{const v=e.target.dataset?.v,a=e.target.dataset?.a;
  if(v){const o=C.find(x=>x.id===v)||D[v];if(o){clearShown();shown=o.id;draw(o.a,o.b);setCar(o.dl)}}
@@ -183,7 +186,7 @@ $('dout').onclick=$('aout').onclick=()=>signOut(dauth);
 $('admb').onclick=()=>{const e=$('em');e.setAttribute('inputmode','email');e.placeholder='البريد الإلكتروني';e.value='';e.focus();$('admb').hidden=true};
 onAuthStateChanged(dauth,async u=>{
  if(joining)return;
- if(unD){unD();unD=null}D={};stopGps();
+ if(unD){unD();unD=null}D={};stopGps();ringCheck();
  if(!u){duid=null;view('login');return}
  try{
   const s=await getDoc(doc(ddb,'drivers',u.uid));
@@ -191,7 +194,7 @@ onAuthStateChanged(dauth,async u=>{
    duid=u.uid;dname=s.data().name||u.email;$('dn').textContent=dname;view('driver');dm('');first=true;
    unD=onSnapshot(query(collection(ddb,'orders')),snap=>{
     snap.docChanges().forEach(c=>{if(!first&&c.type==='added'&&c.doc.data().s===0&&navigator.vibrate)navigator.vibrate([200,100,200])});first=false;
-    D={};snap.docs.forEach(d=>D[d.id]={id:d.id,...d.data()});renderD();gps()},err=>{$('dlist').innerHTML='<div class="empty">تعذّر قراءة الطلبات: '+esc(err.code||err.message)+'</div>'});
+    D={};snap.docs.forEach(d=>D[d.id]={id:d.id,...d.data()});renderD();gps();ringCheck()},err=>{$('dlist').innerHTML='<div class="empty">تعذّر قراءة الطلبات: '+esc(err.code||err.message)+'</div>'});
    return}
   const a=await getDoc(doc(ddb,'admins',u.uid));
   if(a.exists()){view('admin');
@@ -207,10 +210,27 @@ document.addEventListener('click',async e=>{
  const ok=e.target.dataset?.ok,no=e.target.dataset?.no,id=ok||no,r=id&&R[id];if(!r)return;
  try{if(ok)await setDoc(doc(ddb,'drivers',id),{name:r.name,phone:r.phone});await updateDoc(doc(ddb,'driverRequests',id),{status:ok?'approved':'rejected'})}
  catch(x){alert('تعذّر التنفيذ: '+(x.code||x.message))}});
+// ---- رنّة الطلبات الجديدة
+let actx=null,ringT=null,mute=new Set(),ign=new Set();
+try{JSON.parse(localStorage.getItem('tw_ign')||'[]').forEach(x=>ign.add(x))}catch(e){}
+function tone(f,t0,d){const o=actx.createOscillator(),g=actx.createGain();o.frequency.value=f;o.connect(g);g.connect(actx.destination);
+ g.gain.setValueAtTime(.0001,t0);g.gain.exponentialRampToValueAtTime(.5,t0+.03);g.gain.exponentialRampToValueAtTime(.0001,t0+d);o.start(t0);o.stop(t0+d+.05)}
+function ding(){if(!actx)return;const t=actx.currentTime;tone(880,t,.3);tone(1175,t+.35,.4);if(navigator.vibrate)navigator.vibrate([300,150,300])}
+function ringCheck(){const pend=Object.values(D).some(o=>o.s===0&&!ign.has(o.id)&&!mute.has(o.id));
+ if(pend&&actx&&!ringT){ding();ringT=setInterval(ding,3000)}
+ else if(!pend&&ringT){clearInterval(ringT);ringT=null}
+ $('mut').hidden=!ringT}
+$('snd').onclick=()=>{
+ try{if(!actx)actx=new(window.AudioContext||window.webkitAudioContext)();actx.resume();ding()}catch(e){alert('جهازك لا يدعم الصوت في المتصفح');return}
+ try{navigator.wakeLock&&navigator.wakeLock.request('screen').catch(()=>{})}catch(e){}
+ $('snd').textContent='🔔 التنبيه مفعّل. أبقِ الصفحة مفتوحة';ringCheck()};
+$('mut').onclick=()=>{Object.values(D).filter(o=>o.s===0).forEach(o=>mute.add(o.id));ringCheck()};
+document.addEventListener('click',e=>{const h=e.target.dataset?.h;if(!h)return;ign.add(h);
+ try{localStorage.setItem('tw_ign',JSON.stringify([...ign].slice(-200)))}catch(x){}renderD();ringCheck()});
 function renderD(){
  const all=Object.values(D).sort((a,b)=>b.t-a.t),mine=all.filter(o=>o.drv===duid),done=mine.filter(o=>o.s===3);
  $('dc').textContent=done.length;$('dg').textContent=done.reduce((s,o)=>s+o.price,0);
- const list=all.filter(o=>o.s===0||(o.drv===duid&&o.s<3));
+ const list=all.filter(o=>(o.s===0&&!ign.has(o.id))||(o.drv===duid&&o.s<3));
  $('dlist').innerHTML=list.length?list.map(o=>card(o,'d')).join(''):'<div class="empty">لا طلبات الآن.</div>'}
 async function advance(id){const o=D[id];if(!o)return;
  try{await updateDoc(doc(ddb,'orders',id),o.s===0?{s:1,drv:duid,dn:dname}:{s:o.s+1})}
