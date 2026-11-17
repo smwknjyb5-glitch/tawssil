@@ -70,25 +70,28 @@ input,select{width:100%;padding:10px;border:2px solid #cdd6de;border-radius:8px;
 </section>
 <section id="td" hidden>
  <div id="dlogin" class="card"><h2>دخول السائق</h2>
-  <input id="em" type="text" dir="ltr" autocomplete="username" autocapitalize="none" placeholder="اسم المستخدم أو البريد"><input id="pw" type="password" dir="ltr" autocomplete="current-password" placeholder="كلمة السر">
+  <input id="em" type="text" dir="ltr" inputmode="tel" autocomplete="username" autocapitalize="none" placeholder="رقم الهاتف"><input id="pw" type="password" dir="ltr" autocomplete="current-password" placeholder="الرمز السري">
   <button class="go" id="dlg">دخول</button><p class="msg" id="dmsg"></p></div>
- <div id="jcard" class="card"><h2>هل تريد الانضمام كسائق؟</h2>
+ <div id="jcard" class="card"><h2>هل تريد الانضمام كسائق؟ سجّل هنا</h2>
   <input id="jn" maxlength="60" placeholder="الاسم الكامل"><input id="jp" type="tel" maxlength="20" placeholder="رقم الهاتف">
   <input id="jc" maxlength="40" placeholder="المدينة أو الحي"><input id="jv" maxlength="60" placeholder="نوع السيارة وسنة صنعها">
-  <button class="go" id="jb">أرسل طلب الانضمام</button><p class="msg" id="jm">سنتصل بك للتحقق من وثائقك قبل تفعيل حسابك.</p></div>
+  <input id="jk" type="password" inputmode="numeric" maxlength="6" dir="ltr" autocomplete="new-password" placeholder="اختر رمزًا سريًا من 6 أرقام">
+  <button class="go" id="jb">سجّل كسائق</button><p class="msg" id="jm">سنتصل بك للتحقق من وثائقك. وبعد قبولك تدخل برقم هاتفك ورمزك.</p></div>
+ <div id="awrap" hidden><h2>طلبات الانضمام (المشرف)</h2><div id="alist"></div><button class="go sec" id="aout">خروج</button></div>
  <div id="dwrap" hidden>
   <div class="sum"><span id="dn"></span><span>منجزة <b id="dc">0</b></span><span>أرباح <b id="dg">0</b></span></div>
   <div id="dlist"></div>
   <button class="go sec" id="dout">خروج</button>
  </div>
 </section>
+
 <section id="tl" hidden><div id="llist"></div></section>
 </main>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {getAuth,signInAnonymously,signInWithEmailAndPassword,signOut,onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import {getFirestore,collection,addDoc,query,where,onSnapshot,doc,getDoc,updateDoc} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {getAuth,signInAnonymously,signInWithEmailAndPassword,createUserWithEmailAndPassword,signOut,onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {getFirestore,collection,addDoc,query,where,onSnapshot,doc,getDoc,setDoc,updateDoc} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 const cfg={apiKey:"AIzaSyACnwmNaIFFl2-mkfVR_8tpuYRzoUAenb4",authDomain:"tawssildz-bb7d8.firebaseapp.com",projectId:"tawssildz-bb7d8",storageBucket:"tawssildz-bb7d8.firebasestorage.app",messagingSenderId:"590057204140",appId:"1:590057204140:web:4f2fb64072bad9ec6fb209"};
 // تطبيقان منفصلان: واحد للزبون وآخر للسائق، حتى لا يتداخل الدخولان
 const capp=initializeApp(cfg,'cust'),dapp=initializeApp(cfg,'drv');
@@ -170,20 +173,38 @@ $('order').onclick=async()=>{
  catch(e){cmsg('تعذّر إرسال الطلب ('+(e.code||e.message)+')');calc()}};
 
 // ---- السائق
-let D={},duid=null,dname='',unD=null,wid=null,last=0,first=true;
-const dm=t=>$('dmsg').textContent=t;
-$('dlg').onclick=async()=>{dm('جارٍ الدخول…');try{const e=$('em').value.trim();await signInWithEmailAndPassword(dauth,e.includes('@')?e:e+'@tawsil.app',$('pw').value)}catch(e){dm('بيانات الدخول غير صحيحة')}};
-$('dout').onclick=()=>signOut(dauth);
+let D={},R={},duid=null,dname='',unD=null,wid=null,last=0,first=true,joining=false;
+const dm=t=>$('dmsg').textContent=t,digits=x=>x.replace(/\D/g,'');
+function view(w){$('dlogin').hidden=$('jcard').hidden=w!=='login';$('dwrap').hidden=w!=='driver';$('awrap').hidden=w!=='admin'}
+$('dlg').onclick=async()=>{dm('جارٍ الدخول…');const e=$('em').value.trim();
+ try{await signInWithEmailAndPassword(dauth,e.includes('@')?e:digits(e)+'@tawsil.app',$('pw').value)}catch(x){dm('الرقم أو الرمز غير صحيح')}};
+$('dout').onclick=$('aout').onclick=()=>signOut(dauth);
 onAuthStateChanged(dauth,async u=>{
+ if(joining)return;
  if(unD){unD();unD=null}D={};stopGps();
- if(!u){duid=null;$('dlogin').hidden=false;$('jcard').hidden=false;$('dwrap').hidden=true;return}
- try{const s=await getDoc(doc(ddb,'drivers',u.uid));
-  if(!s.exists()){dm('هذا الحساب غير مسجل كسائق');await signOut(dauth);return}
-  duid=u.uid;dname=s.data().name||u.email;$('dn').textContent=dname;$('dlogin').hidden=true;$('jcard').hidden=true;$('dwrap').hidden=false;dm('');first=true;
-  unD=onSnapshot(query(collection(ddb,'orders')),snap=>{
-   snap.docChanges().forEach(c=>{if(!first&&c.type==='added'&&c.doc.data().s===0&&navigator.vibrate)navigator.vibrate([200,100,200])});first=false;
-   D={};snap.docs.forEach(d=>D[d.id]={id:d.id,...d.data()});renderD();gps()},err=>{$('dlist').innerHTML='<div class="empty">تعذّر قراءة الطلبات: '+esc(err.code||err.message)+'</div>'})
- }catch(e){dm('تعذّر التحقق من حساب السائق');await signOut(dauth)}});
+ if(!u){duid=null;view('login');return}
+ try{
+  const s=await getDoc(doc(ddb,'drivers',u.uid));
+  if(s.exists()){
+   duid=u.uid;dname=s.data().name||u.email;$('dn').textContent=dname;view('driver');dm('');first=true;
+   unD=onSnapshot(query(collection(ddb,'orders')),snap=>{
+    snap.docChanges().forEach(c=>{if(!first&&c.type==='added'&&c.doc.data().s===0&&navigator.vibrate)navigator.vibrate([200,100,200])});first=false;
+    D={};snap.docs.forEach(d=>D[d.id]={id:d.id,...d.data()});renderD();gps()},err=>{$('dlist').innerHTML='<div class="empty">تعذّر قراءة الطلبات: '+esc(err.code||err.message)+'</div>'});
+   return}
+  const a=await getDoc(doc(ddb,'admins',u.uid));
+  if(a.exists()){view('admin');
+   unD=onSnapshot(query(collection(ddb,'driverRequests')),snap=>{R={};snap.docs.forEach(d=>R[d.id]={id:d.id,...d.data()});renderA()},err=>{$('alist').innerHTML='<div class="empty">تعذّر القراءة: '+esc(err.code||err.message)+'</div>'});
+   return}
+  dm('طلبك قيد المراجعة. سنتصل بك بعد التحقق من وثائقك.');await signOut(dauth);
+ }catch(e){dm('تعذّر التحقق من الحساب');await signOut(dauth)}});
+function renderA(){
+ const l=Object.values(R).filter(r=>r.status==='pending').sort((a,b)=>b.t-a.t);
+ $('alist').innerHTML=l.length?l.map(r=>`<div class="o"><div class="r"><b>${esc(r.name)}</b><b dir="ltr">${esc(r.phone)}</b></div><div class="st">${esc(r.city)} • ${esc(r.car)}</div>
+ <div class="row"><a class="go sec" href="tel:${esc(r.phone)}">📞 اتصال</a><button class="go" data-ok="${r.id}">قبول</button><button class="go sec" data-no="${r.id}">رفض</button></div></div>`).join(''):'<div class="empty">لا طلبات انضمام جديدة.</div>'}
+document.addEventListener('click',async e=>{
+ const ok=e.target.dataset?.ok,no=e.target.dataset?.no,id=ok||no,r=id&&R[id];if(!r)return;
+ try{if(ok)await setDoc(doc(ddb,'drivers',id),{name:r.name,phone:r.phone});await updateDoc(doc(ddb,'driverRequests',id),{status:ok?'approved':'rejected'})}
+ catch(x){alert('تعذّر التنفيذ: '+(x.code||x.message))}});
 function renderD(){
  const all=Object.values(D).sort((a,b)=>b.t-a.t),mine=all.filter(o=>o.drv===duid),done=mine.filter(o=>o.s===3);
  $('dc').textContent=done.length;$('dg').textContent=done.reduce((s,o)=>s+o.price,0);
@@ -198,15 +219,20 @@ function gps(){const mine=()=>Object.values(D).filter(o=>o.drv===duid&&o.s>0&&o.
  else if(!mine().length)stopGps()}
 function stopGps(){if(wid!==null){navigator.geolocation.clearWatch(wid);wid=null}}
 
-// ---- طلب الانضمام كسائق
+// ---- تسجيل سائق جديد: الهاتف + رمز من 6 أرقام
 $('jb').onclick=async()=>{
- const n=$('jn').value.trim(),p=$('jp').value.trim(),c=$('jc').value.trim(),v=$('jv').value.trim(),m=$('jm');
- if(n.length<3||p.replace(/\D/g,'').length<8||!c||!v){m.textContent='أكمل كل الخانات برقم هاتف صحيح';return}
- if(!cuid){m.textContent='لم يكتمل الاتصال بعد، حاول بعد لحظة';return}
- $('jb').disabled=true;
- try{await addDoc(collection(cdb,'driverRequests'),{uid:cuid,name:n,phone:p,city:c,car:v,t:Date.now()});
-  m.textContent='تم إرسال طلبك. سنتصل بك قريبًا.';['jn','jp','jc','jv'].forEach(i=>$(i).value='')}
- catch(e){m.textContent='تعذّر الإرسال. حاول لاحقًا.';$('jb').disabled=false}};
+ const n=$('jn').value.trim(),d=digits($('jp').value),c=$('jc').value.trim(),v=$('jv').value.trim(),k=$('jk').value.trim(),m=$('jm');
+ if(n.length<3||d.length<8||!c||!v||!/^\d{6}$/.test(k)){m.textContent='أكمل الخانات: رقم هاتف صحيح ورمز من 6 أرقام';return}
+ $('jb').disabled=true;m.textContent='جارٍ التسجيل…';joining=true;
+ try{
+  const cr=await createUserWithEmailAndPassword(dauth,d+'@tawsil.app',k);
+  await setDoc(doc(ddb,'driverRequests',cr.user.uid),{uid:cr.user.uid,name:n,phone:d,city:c,car:v,status:'pending',t:Date.now()});
+  await signOut(dauth);
+  m.textContent='تم تسجيلك. سنتصل بك للتحقق، وبعد قبولك تدخل برقم هاتفك ورمزك.';['jn','jp','jc','jv','jk'].forEach(i=>$(i).value='')
+ }catch(e){
+  try{await signOut(dauth)}catch(x){}
+  m.textContent=e.code==='auth/email-already-in-use'?'هذا الرقم مسجل من قبل. جرّب الدخول برقمك ورمزك.':'تعذّر التسجيل ('+(e.code||e.message)+')'}
+ joining=false;$('jb').disabled=false};
 
 // ---- التبويبات
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
